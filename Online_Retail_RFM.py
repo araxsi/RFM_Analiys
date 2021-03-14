@@ -213,8 +213,6 @@ plt.show()
 
 #*******************************K-Means Kümelemesinin Uygulanması************************************
 
-#1 Veri Önişlemesi
-#Değişkenleri StandardScaler ile normalleştirin
 from sklearn.preprocessing import StandardScaler
 scaler = StandardScaler()
 scaler.fit(rfm_log)
@@ -223,7 +221,6 @@ rfm_normalized= scaler.transform(rfm_log)
 
 from sklearn.cluster import KMeans
 
-#First : En İyi KMean'leri Alın
 ks = range(1,8)
 inertias=[]
 for k in ks :
@@ -232,7 +229,7 @@ for k in ks :
     kc.fit(rfm_normalized)
     inertias.append(kc.inertia_)
 
-# Plot ks vs inertias
+
 f, ax = plt.subplots(figsize=(15, 8))
 plt.plot(ks, inertias, '-o')
 plt.xlabel('Number of clusters, k')
@@ -248,13 +245,13 @@ plt.show()
 kc = KMeans(n_clusters= 3, random_state=1)
 kc.fit(rfm_normalized)
 
-#Create a cluster label column in the original DataFrame
+
 cluster_labels = kc.labels_
 
-#Calculate average RFM values and size for each cluster:
+
 rfm_rfm_k3 = rfm_rfm.assign(K_Cluster = cluster_labels)
 
-#Calculate average RFM values and sizes for each cluster:
+
 rfm_rfm_k3.groupby('K_Cluster').agg({'Recency': 'mean','Frequency': 'mean',
                                          'MonetaryValue': ['mean', 'count'],}).round(0)
 
@@ -263,7 +260,7 @@ rfm_normalized['K_Cluster'] = kc.labels_
 rfm_normalized['General_Segment'] = rfm['General_Segment']
 rfm_normalized.reset_index(inplace = True)
 
-#Melt the data into a long format so RFM values and metric names are stored in 1 column each
+
 rfm_melt = pd.melt(rfm_normalized,id_vars=['CustomerID','General_Segment','K_Cluster'],value_vars=['Recency', 'Frequency', 'MonetaryValue'],
 var_name='Metric',value_name='Value')
 rfm_melt.head()
@@ -277,7 +274,7 @@ sns.lineplot(x = 'Metric', y = 'Value', hue = 'General_Segment', data = rfm_melt
 # a snake plot with K-Means
 sns.lineplot(x = 'Metric', y = 'Value', hue = 'K_Cluster', data = rfm_melt,ax=ax2)
 
-plt.suptitle("Snake Plot of RFM",fontsize=24) #make title fontsize subtitle 
+plt.suptitle("Snake Plot of RFM",fontsize=24) 
 plt.show()
 
 
@@ -306,7 +303,7 @@ ax1.set(title = "Heatmap of K-Means")
 sns.heatmap(prop_rfm, cmap= 'Oranges', fmt= '.2f', annot = True,ax=ax2)
 ax2.set(title = "Heatmap of RFM quantile")
 
-plt.suptitle("Heat Map of RFM",fontsize=20) #make title fontsize subtitle 
+plt.suptitle("Heat Map of RFM",fontsize=20) 
 
 plt.show()
 
