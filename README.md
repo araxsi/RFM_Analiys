@@ -1,4 +1,4 @@
-# RFM_Analiys
+# RFM_Analysis
 Customer Segmentation (RFM &amp; Cohort Analysis)
 
 
