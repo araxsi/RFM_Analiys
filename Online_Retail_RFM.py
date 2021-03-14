@@ -4,18 +4,12 @@ Created on Wed Mar  3 13:40:44 2021
 
 @author: ISKENDER.YILMAZ
 """
-"""
-https://www.kaggle.com/mahmoudelfahl/cohort-analysis-customer-segmentation-with-rfm/data
-E-ticaret web sitesinde daha çok kullandığımız Kohort Analizi 
-(Kullanıcı ve Ürün Ömrü Üzerinden Tutma) ve Mobil Uygulama
-"""
 
-# import library
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+import numpy as np 
+import pandas as pd 
 import datetime as dt
-
-#For Data  Visualization
+#Veri Görselleştirme
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -24,7 +18,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 
-df = pd.read_excel(r'C:\Users\ISKENDER.YILMAZ\Desktop\Online Retail.xlsx')
+df = pd.read_excel('Online Retail.xlsx')
 
 #Fonksiyonlar klasörüne taşınacak.
 def data_understanding(dataframe):
@@ -32,12 +26,12 @@ def data_understanding(dataframe):
     print(round(dataframe.describe().T),"\n\n")
     print(dataframe.info(),"\n\n")
     print(df.isnull().sum(),"\n\n")
-    # plt.figure(figsize=(12, 10))
-    # cor = dataframe.corr()
-    # sns.heatmap(cor, annot=True, cmap=plt.cm.Reds)
-    # plt.show()
-    # sns.pairplot(dataframe.drop(["CustomerID"], axis=1))
-    # plt.show()
+    plt.figure(figsize=(12, 10))
+    cor = dataframe.corr()
+    sns.heatmap(cor, annot=True, cmap=plt.cm.Reds)
+    plt.show()
+    sns.pairplot(dataframe.drop(["CustomerID"], axis=1))
+    plt.show()
 
 data_understanding(df)
 
@@ -57,14 +51,14 @@ df=df[(df['Quantity']>0) & (df['UnitPrice']>0)]
 df.describe() 
 df.shape
 
-#Tarihin düzenlenmesi konusunda aşağıdaki gibi bir düzenleme yapar COHORT analizi konusunda 
+#Tarihin düzenlenmesi konusunda aşağıdaki gibi bir düzenleme yaparak COHORT analizi konusunda 
 #kullanacağımız yapıyı oluşturuyoruz.
 def get_month(x) : return dt.datetime(x.year,x.month,1)
 df['InvoiceMonth'] = df['InvoiceDate'].apply(get_month)
 grouping = df.groupby('CustomerID')['InvoiceMonth']
 df['CohortMonth'] = grouping.transform('min')
 df.tail()
-#İlgili fonksiyon ile tarihleri parçalayıp geri dönderiyoruz. Yeni alanların üretilmesini sağlıyoruz.
+#İlgili fonksiyon ile tarihleri parçalayıp geri dönderiyoruz. Yeni analiz alanların üretilmesini sağlıyoruz.
 def get_month_int (dframe,column):
     year = dframe[column].dt.year
     month = dframe[column].dt.month
@@ -122,32 +116,19 @@ print('Min Invoice Date:',df.InvoiceDate.dt.date.min(),'max Invoice Date:',
        df.InvoiceDate.dt.date.max())
 
 df.head(3)
-
-
-#Gerçek dünyada, bugünün veya dünün verilerinin en son anlık görüntüsü ile çalışıyor olurduk.
-
 snapshot_date = df['InvoiceDate'].max() + dt.timedelta(days=1)
 snapshot_date
-
-
-
 # RFM ölçümlerini hesaplıyoruz.
 rfm = df.groupby(['CustomerID']).agg({'InvoiceDate': lambda x : (snapshot_date - x.max()).days,
                                       'InvoiceNo':'count','TotalSum': 'sum'})
 
 
-#Colon isimlerini değiştiriyoruz.
+#Kolon isimlerini değştiriyoruz ve RFM analizine başlıyoruz.
 rfm.rename(columns={'InvoiceDate':'Recency','InvoiceNo':'Frequency','TotalSum':'MonetaryValue'}
            ,inplace= True)
 
-#Final RFM values
+#Final RFM değerleri.
 rfm.head()
-
-"""# Son zamanlarda daha aktif olan "Yenilik" müşterisini daha az yeni olan müşteriden daha iyi değerlendireceğiz, çünkü her şirket müşterilerinin yeni olmasını istiyor
-
-# Müşterinin daha fazla para harcamasını ve daha sık ziyaret etmesini istediğimiz için (bu, yenilikten farklı bir sıradır) "Sıklık" ve "Parasal Değer" i daha yüksek etiketle derecelendireceğiz."""
-
-
 
 #Segmentleri oluşturuyoruz.
 r_labels =range(4,0,-1)
@@ -166,7 +147,7 @@ rfm['RFM_Score'] = rfm[['R','F','M']].sum(axis=1)
 rfm.head()
 
 
-#RFM Analizi yapılırken en yüksek RFM gruplaması fazla olandan başlanırö
+#RFM Analizi yapılırken en yüksek RFM gruplaması fazla olandan başlanıyor.
 
 rfm.groupby(['RFM_Segment']).size().sort_values(ascending=False)[:5]
 #RFM Segment sayısı "111" olan grubu analiz etmeye başlıyoruz.
@@ -177,7 +158,7 @@ rfm.groupby('RFM_Score').agg({'Recency': 'mean','Frequency': 'mean',
                              'MonetaryValue': ['mean', 'count'] }).round(1)
 
 """Müşterileri gruplarındaki değerlendirmelerine göre ayırmaç için 
-segmentlerine ayırmak için RFM puanını kullanın"""
+segmentlerine ayırmak için RFM skorunu kullanıyoruz."""
 
 def segments(df):
     if df['RFM_Score'] > 9 :
@@ -192,23 +173,12 @@ rfm['General_Segment'] = rfm.apply(segments,axis=1)
 rfm.groupby('General_Segment').agg({'Recency':'mean','Frequency':'mean',
                                     'MonetaryValue':['mean','count']}).round(1)
 
-"""Kmeans Kümeleme için Veri Ön İşleme¶
-
-Kmeans Kümeleme Modumuzu uygulamadan önce bu Anahtar k-anlamı varsayımlarını kontrol etmeliyiz
-
-    Değişkenlerin simetrik dağılımı (çarpık değil)
-    Aynı ortalama değerlere sahip değişkenler
-    Aynı varyansa sahip değişkenler
-
-"""
-
 rfm_rfm = rfm[['Recency','Frequency','MonetaryValue']]
 print(rfm_rfm.describe())
 
-"""Bu tablodan şu Problemi buluyoruz: Ortalama ve Varyans Eşit Değil
+"""Bu tablodan şu kanıya varabiliriz. Ortalama ve varyans Eşit Değil
 
-Soluation: Scikit-learn kütüphanesinden bir ölçekleyici kullanarak değişkenleri ölçekleme"""
-
+Çözüm olarak Scikit-learn kütüphanesinden bir ölçekleyici kullanarak değişkenleri ölçekleme olabilir."""
 
 
 # RFM dağılımını Plot Alanında görülmesi 
@@ -220,22 +190,10 @@ plt.style.use('fivethirtyeight')
 plt.tight_layout()
 plt.show()
 
-"""Ayrıca, başka bir Sorun daha var: Değişkenlerin simetrik olmayan dağılımı (çarpık veriler)
+"""Diğer bir sorun, değişkenlerin simetrik olmayan dağılımı (çarpık veriler)
 
-Çözüm: Logaritmik dönüşüm (yalnızca pozitif değerler) çarpıklığı yönetecek
-
-Ön işleme adımlarını yapılandırmanın Sırasını kullanıyoruz: 1. Veriyi eğriltme - günlük dönüşümü
-
-2. Aynı ortalama değerlere standardize edin
-
-3. Aynı standart sapmaya göre ölçeklendirin
-
-4. Kümeleme için kullanılacak ayrı bir dizi olarak saklayın
-
-Sıra neden önemlidir?
-
-    Günlük dönüşümü yalnızca pozitif verilerle çalışır
-    Normalleştirme, verileri negatif değerlere sahip olmaya zorlar ve günlük çalışmaz"""
+Çözümü konusunda Logaritmik dönüşüm (yalnızca pozitif değerler) çarpıklığı yöneteceğiz
+"""
     
     
     
@@ -255,15 +213,6 @@ plt.show()
 
 #*******************************K-Means Kümelemesinin Uygulanması************************************
 
-"""
-Anahtar adımlar
-
-    1-Veri ön işleme
-    2-Birkaç küme seçme
-    3-K-anlamına gelir kümeleme önceden işlenmiş veriler üzerinde çalıştırma
-    4-Her kümenin ortalama RFM değerlerini analiz etme
-
-"""
 #1 Veri Önişlemesi
 #Değişkenleri StandardScaler ile normalleştirin
 from sklearn.preprocessing import StandardScaler
@@ -271,23 +220,6 @@ scaler = StandardScaler()
 scaler.fit(rfm_log)
 #Store it separately for clustering
 rfm_normalized= scaler.transform(rfm_log)
-
-#2 Küme Seçme işlemi
-"""
-Küme sayısını tanımlama yöntemleri
-
-    Görsel yöntemler - dirsek kriteri
-    Matematiksel yöntemler - siluet katsayısı
-    Deney ve yorumlama
-
-Dirsek kriteri yöntemi
-
-    Küme içi kareler toplamı hatalarına (SSE) göre küme sayısını çizin -
-    her veri noktasından küme merkezine kadar olan mesafelerin karesi toplamı
-    Grafikte bir "dirsek" tanımlayın
-    Dirsek - "optimal" sayıda kümeyi temsil eden bir nokta
-    
-"""
 
 from sklearn.cluster import KMeans
 
@@ -326,17 +258,6 @@ rfm_rfm_k3 = rfm_rfm.assign(K_Cluster = cluster_labels)
 rfm_rfm_k3.groupby('K_Cluster').agg({'Recency': 'mean','Frequency': 'mean',
                                          'MonetaryValue': ['mean', 'count'],}).round(0)
 
-"""
-
-Segmentleri anlamak ve karşılaştırmak için yılan grafikleri
-
-    Farklı segmentleri karşılaştırmak için pazar araştırması tekniği
-    Her segmentin özelliklerinin görsel temsili
-    Önce verileri normalleştirmeniz gerekir (merkez ve ölçek)
-    Her bir özelliğin her bir kümenin ortalama normalleştirilmiş değerlerinin grafiğini çizin
-    
-"""
-
 rfm_normalized = pd.DataFrame(rfm_normalized,index=rfm_rfm.index,columns=rfm_rfm.columns)
 rfm_normalized['K_Cluster'] = kc.labels_
 rfm_normalized['General_Segment'] = rfm['General_Segment']
@@ -360,20 +281,6 @@ plt.suptitle("Snake Plot of RFM",fontsize=24) #make title fontsize subtitle
 plt.show()
 
 
-"""
-Segment özelliklerinin göreceli önemi
-
-    Her segmentin özelliğinin göreceli önemini belirlemek için faydalı teknik
-    Her kümenin ortalama değerlerini hesaplayın
-    Nüfusun ortalama değerlerini hesaplayın
-    Önem puanını bölerek ve 1 çıkararak hesaplayın (küme ortalaması, nüfus ortalamasına eşit olduğunda 0'ın döndürülmesini sağlar)
-
-Bir ısı haritasıyla tekrar deneyelim.
- Isı haritaları, daha büyük değerlerin daha koyu ölçeklerde ve daha küçük değerlerin daha açık 
- ölçeklerde renklendirildiği verilerin grafik gösterimidir. Gruplar arasındaki varyansı renklere 
- göre oldukça sezgisel olarak karşılaştırabiliriz.
- 
- """
  
 # Oran 0'dan ne kadar uzaksa, özellik toplam popülasyona göre bir segment için o kadar önemlidir
 cluster_avg = rfm_rfm_k3.groupby(['K_Cluster']).mean()
@@ -402,18 +309,6 @@ ax2.set(title = "Heatmap of RFM quantile")
 plt.suptitle("Heat Map of RFM",fontsize=20) #make title fontsize subtitle 
 
 plt.show()
-
-
-"""
-
-Tenure değişkenini ekleyerek RFM verilerini güncelleyebilirsiniz:
-    -Tenure: ilk işlemden itibaren geçen süre ،
-    Müşterinin şirkette ne kadar süredir çalıştığını tanımlar
-
-Sonuç: Müşteri satın alma verilerinden RFM değerlerinin nasıl alınacağından bahsettik ve 
-RFM miktarları ve K-Means kümeleme yöntemleriyle iki tür segmentasyon yaptık.
-
-"""
 
 
 
